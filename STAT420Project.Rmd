@@ -242,7 +242,6 @@ countries %>%
 ```{r RQ3 model 1}
 countries<- read_csv("data/countries-aggregated.csv")
 world <- read_csv("data/worldwide-aggregate.csv")
-
 #explaratory analysis (de-trend confirmed cases)
 #initial plot
 plot(world$Date, world$Confirmed)
@@ -250,15 +249,12 @@ y=world$Confirmed
 time=world$Date
 acf(y)
 pacf(y)
-
 #regression to de-trend
 y.lm=lm(y~time)
 plot(world$Date,y, type='l', xlab='time')
 abline(reg=y.lm)
-
 #check acf after regression
 acf(resid(y.lm))
-
 #detrend through difference
 plot(diff(resid(y.lm)), type='l')
 acf(diff(resid(y.lm)))
@@ -267,196 +263,76 @@ acf(diff(resid(y.lm)))
 plot(diff(y), type='l')
 acf(diff(y))
 pacf(diff(y))
-
 #plot 2nd difference, acf, pacf
-plot(diff(diff(y)), type='l')
-acf(diff(diff(y)))
-pacf(diff(diff(y)))
+par(mfrow=c(2,2))
+plot(diff(y, differences = 2), type='l', ylab = "2nd Difference of Confirmed Cases",  main = "2st Order Difference of Confirmed Cases")
+acf(diff(y, differences = 2))
+pacf(diff(y, differences = 2))
 
 #plot 1st seasonal difference, acf, pacf
-plot(diff(diff(diff(y)), 7))
-acf(diff(diff(diff(y)), 7))
-fin = diff(diff(diff(y)), 7)
+par(mfrow=c(2,2))
+fin = diff(diff(y, differences = 2), 7)
+plot(fin, type = 'l',  ylab = "1st Seasonal Difference, Confirmed Cases",  main = "1st Seasonal Diff, Confirmed Cases")
+acf(fin)
 pacf(fin)
+```
 
+```{r RQ3 models}
+#model 1
 confirmed.arima1 = arima(y, order=c(0, 2,1), seasonal=list(order=c(0, 1,1), period=7))
-
-plot(confirmed.arima1$residuals, ylab = 'residuals')
-acf(confirmed.arima1$residuals, lag.max  = 50, na.action=na.pass)
-pacf(confirmed.arima1$residuals, lag.max  = 50, na.action=na.pass)
+par(mfrow=c(2,2))
+plot(confirmed.arima1$residuals, ylab = 'residuals', main = "Model 1 (0,2,1)x(0,1,1)7")
+acf(confirmed.arima1$residuals, lag.max  = 50)
+pacf(confirmed.arima1$residuals, lag.max  = 50)
 
 qqnorm(confirmed.arima1$residual)
 qqline(confirmed.arima1$residual)
 Box.test(confirmed.arima1$residuals, fitdf=1, lag = 20, type="Ljung")
-
 confirmed.arima1$aic
-```
 
-```{r RQ3 model 2}
-confirmed.arima2 = arima(y, order=c(0, 2,2), seasonal=list(order=c(0, 1,1), period=7))
+#model 2
+par(mfrow=c(2,2))
+#confirmed.arima2 = arima(y, order=c(0, 2,2), seasonal=list(order=c(0, 1,1), period=7))
+confirmed.arima2 = arima(y, order=c(0, 2,1), seasonal=list(order=c(0, 1,2), period=7))
 
-plot(confirmed.arima2$residuals, ylab = 'residuals')
-acf(confirmed.arima2$residuals, lag.max  = 50, na.action=na.pass)
+plot(confirmed.arima2$residuals, ylab = 'residuals',  main = "Model 2 (0,2,2)x(0,1,1)7")
+acf(confirmed.arima2$residuals, lag.max  = 50)
+pacf(confirmed.arima2$residuals, lag.max  = 50)
 
 qqnorm(confirmed.arima2$residual)
 qqline(confirmed.arima2$residual)
 
 confirmed.arima2$aic
-Box.test(confirmed.arima2$residuals, lag = 20, fitdf=2, type="Ljung")
+Box.test(confirmed.arima2$residuals, lag = 20, fitdf=1, type="Ljung")
 
-```
-We found that model 1 would be the best which is the ARIMA(0,2,1)x(0,1,1)7. Next, we take a closer look at the overall forecasting using the model. 
+#Model 3
+par(mfrow=c(2,2))
+confirmed.arima3 = arima(y, order=c(1, 2,1), seasonal=list(order=c(0, 1,2), period=7))
 
-```{r RQ3 forecast}
-
-#Forecasting with model 1 confirmed cases
-forecast=predict(confirmed.arima1, n.ahead =50)
-
-#overall forecast
-plot(y, xlim = c(0,700), ylim = c(0, 262659973), type='l')
-lines(forecast$pred, col="green")
-
-#closer look
-sarima.for(world$Confirmed, 50, 1,2,0,1,1,0,7)
-
-```
-
-```{r RQ3 exploratory}
-#initial plot
-ts.plot(world$Recovered[0:500])
-x = world$Recovered[0:500]
-par(mfrow=c(1,2))
-acf(x)
-pacf(x)
-
-#1st difference plot, acf, pacf
-par(mfrow=c(1, 1))
-diff(x)
-ts.plot(diff(x))
-par(mfrow=c(1, 2))
-acf(diff(x))
-pacf(diff(x))
-
-#2st difference plot, acf, pacf
-par(mfrow=c(1, 1))
-ts.plot(diff(diff(x)))
-par(mfrow=c(1, 2))
-acf(diff(diff(x)))
-pacf(diff(diff(x)))
-
-```
-
-```{r RQ3 arima3 & arima4}
-par(mfrow=c(2, 2))
-confirmed.arima3 = arima(x, order=c(0, 2, 1))
-plot(confirmed.arima3$residuals, ylab = 'residuals')
+plot(confirmed.arima3$residuals, ylab = 'residuals', main ="Model 3 (1,2,1)x(0,1,2)7" )
 acf(confirmed.arima3$residuals, lag.max  = 50)
 pacf(confirmed.arima3$residuals, lag.max  = 50)
 
 qqnorm(confirmed.arima3$residual)
 qqline(confirmed.arima3$residual)
 
-Box.test(confirmed.arima3$residuals, lag = 20, fitdf=1, type="Ljung")
-
 confirmed.arima3$aic
-
-confirmed.arima4 = arima(x, order=c(0, 2, 2))
-plot(confirmed.arima4$residuals, ylab = 'residuals')
-acf(confirmed.arima4$residuals, lag.max  = 50)
-pacf(confirmed.arima4$residuals, lag.max  = 50)
-
-qqnorm(confirmed.arima4$residual)
-qqline(confirmed.arima4$residual)
-
-Box.test(confirmed.arima4$residuals, lag = 20, fitdf=1, type="Ljung")
-
-confirmed.arima4$aic
-
+Box.test(confirmed.arima3$residuals, lag = 20, fitdf=2, type="Ljung")
 ```
-We can see that the ARIMA(0,2,1) model is the best, so we forecast with this model
+We found that model 2 would be the best which is the ARIMA(0,2,1)x(0,1,2)7. Next, we take a closer look at the overall forecasting using the model. 
 
-```{r RQ3 forecast2}
-##Forecasting with recovered cases
-forecast=predict(confirmed.arima3, n.ahead =50)
-
-plot(x, type = 'l', xlim = c(0,550), ylim=c(0,139575581))
-lines(forecast$pred, col ='green')
-
+```{r RQ3 forecast}
+#Forecasting with model 1 confirmed cases
+forecast=predict(confirmed.arima12, n.ahead =50)
+#overall forecast
+plot(y, xlim = c(0,700), ylim = c(0, 262659973), type='l')
+lines(forecast$pred, col="green")
 #closer look
-sarima.for(x,30, 0,2,1, 0,0,0,0)
-
+sarima.for(world$Confirmed, 50, 0,2,1,0,1,2,7)
 ```
 
-```{r RQ3 exploratory continued}
-#de-trend deaths
-ts.plot(world$Deaths)
-d = world$Deaths
-par(mfrow=c(1, 2))
-acf(d)
-pacf(d)
+The overall conclusion regarding this question is the confirmed cases can be forecasted using an ARIMA(0,2,1)x(0,1,1)7 model, because from the ACF the residuals are uncorrelated with the exception of 2 outliers. The data follows a mostly normal distribution and the AIC is the lowest at 15882.59.
 
-#1st difference plot, acf, pacf
-par(mfrow=c(1, 1))
-ts.plot((diff(d)))
-par(mfrow=c(1, 2))
-acf(diff(d), lag.max=(50))
-pacf(diff(d),  lag.max=(50))
-
-#2nd difference plot, acf, pacf
-par(mfrow=c(1, 1))
-ts.plot((diff(diff(d))))
-par(mfrow=c(1, 2))
-acf(diff(diff(d)), lag.max=(50))
-pacf(diff(diff(d)),  lag.max=(50))
-
-#1st seasonal difference period 7 plot, acf, pacf
-acf(diff(diff(diff(d)), 7), lag.max=50)
-pacf(diff(diff(diff(d)), 7), lag.max=50)
-```
-
-
-```{r RQ3 arima5 & arima6}
-confirmed.arima5 = arima(d, order=c(0, 1, 1),  seasonal=list(order=c(0, 1,2), period=7))
-par(mfrow=c(1, 1))
-plot(confirmed.arima5$residuals, ylab = 'residuals')
-par(mfrow=c(1, 2))
-acf(confirmed.arima5$residuals, lag.max  = 50)
-pacf(confirmed.arima5$residuals, lag.max  = 50)
-
-qqnorm(confirmed.arima5$residual)
-qqline(confirmed.arima5$residual)
-
-Box.test(confirmed.arima5$residuals, lag = 20,fitdf=1)
-confirmed.arima5$aic
-
-confirmed.arima6 = arima(d, order=c(0, 1, 1),  seasonal=list(order=c(0, 1,1), period=7))
-par(mfrow=c(1, 1))
-plot(confirmed.arima6$residuals, ylab = 'residuals')
-par(mfrow=c(1, 2))
-acf(confirmed.arima6$residuals, lag.max  = 50)
-pacf(confirmed.arima6$residuals, lag.max  = 50)
-
-qqnorm(confirmed.arima6$residual)
-qqline(confirmed.arima6$residual)
-
-Box.test(confirmed.arima6$residuals, lag = 20,fitdf=1)
-confirmed.arima6$aic
-
-
-```
-We can see that the ARIMA(0,1,1)x(0,1,2)7 model is the best so we use it to forecast deaths
-
-```{r RQ3 forecast3}
-forecast=predict(confirmed.arima5, n.ahead =50)
-
-plot(d, type = 'l', ylim= c(0, 5236472), xlim= c(0,700))
-lines(forecast$pred, col ='green')
-
-#closer look
-sarima.for(d, 50, 0,1,1,0,1,2,7)
-```
-
-The overall conclusion regarding this question is the confirmed cases and deaths both can be forecasted using an ARIMA(0,2,1)x(0,1,1)7 model. However, recoveries doesn't seem to have a seasonal component so it can be modeled with ARIMA(0,2,1). The period of 7 for seasonality of confirmed cases and deaths can be explained by the trends we see weekly and the way the data is collected. Oftentimes there are patterns depending on the day of the week. 
 
 # Research Question #4: What times of the year do the most covid cases and/or deaths occur?
 
